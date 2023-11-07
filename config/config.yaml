@@ -1,0 +1,4 @@
+#config to be used for fuzzing
+
+url_oob: "http://oob.nncg.uk"
+
