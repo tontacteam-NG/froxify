@@ -3,11 +3,16 @@ package elastic
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/go-redis/redis/v8"
 
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
@@ -29,6 +34,8 @@ type Options struct {
 	Password string `yaml:"password"`
 	// IndexName is the name of the elasticsearch index
 	IndexName string `yaml:"index-name"`
+	// RedisAddr is the address of redis instance
+	Redis *redis.Client `yaml:"redis"`
 }
 
 // Client type for elasticsearch
@@ -36,6 +43,7 @@ type Client struct {
 	index    string
 	options  *Options
 	esClient *elasticsearch.Client
+	Redis    *redis.Client
 }
 
 // New creates and returns a new client for elasticsearch
@@ -62,6 +70,7 @@ func New(option *Options) (*Client, error) {
 		esClient: elasticsearchClient,
 		index:    option.IndexName,
 		options:  option,
+		Redis:    option.Redis,
 	}
 	return client, nil
 
@@ -69,40 +78,74 @@ func New(option *Options) (*Client, error) {
 
 // Store saves a passed log event in elasticsearch
 func (c *Client) Save(data types.OutputData) error {
-	var doc map[string]interface{}
-	if data.Userdata.HasResponse {
-		doc = map[string]interface{}{
-			"response":  data.DataString,
-			"timestamp": time.Now().Format(time.RFC3339),
-		}
-	} else {
-		doc = map[string]interface{}{
-			"request":   data.DataString,
-			"timestamp": time.Now().Format(time.RFC3339),
-		}
+	//process redis before save
+	method := strings.Split(data.DataString, " ")[0]
+	if method == "CONNECT" {
+		return nil
 	}
 
-	body, err := json.Marshal(&map[string]interface{}{
-		"doc":           doc,
-		"doc_as_upsert": true,
-	})
+	fmt.Println("redis: ", c.Redis)
+	hash := CaculatorHash(data)
+	exits, err := c.Redis.SIsMember(context.Background(), "hash", hash).Result()
+	fmt.Println("heehe: ", exits)
 	if err != nil {
+		fmt.Println("error: ", err)
 		return err
+	} else {
+		if exits {
+			fmt.Println("Hash exits")
+		} else {
+			var doc map[string]interface{}
+			if data.Userdata.HasResponse {
+				doc = map[string]interface{}{
+					"response":  data.DataString,
+					"timestamp": time.Now().Format(time.RFC3339),
+				}
+			} else {
+				doc = map[string]interface{}{
+					"request":   data.DataString,
+					"timestamp": time.Now().Format(time.RFC3339),
+				}
+			}
+
+			body, err := json.Marshal(&map[string]interface{}{
+				"doc":           doc,
+				"doc_as_upsert": true,
+			})
+			if err != nil {
+				return err
+			}
+			updateRequest := esapi.UpdateRequest{
+				Index:      c.index,
+				DocumentID: data.Name,
+				Body:       bytes.NewReader(body),
+			}
+			res, err := updateRequest.Do(context.Background(), c.esClient)
+			if err != nil || res == nil {
+				return errors.New("error thrown by elasticsearch: " + err.Error())
+			}
+			if res.StatusCode >= 300 {
+				return errors.New("elasticsearch responded with an error: " + string(res.String()))
+			}
+			// Drain response to reuse connection
+			_, er := io.Copy(io.Discard, res.Body)
+			res.Body.Close()
+			if er != nil {
+				return er
+			}
+			err = c.Redis.SAdd(context.Background(), "hash", hash).Err()
+			if err != nil {
+				return err
+			}
+		}
 	}
-	updateRequest := esapi.UpdateRequest{
-		Index:      c.index,
-		DocumentID: data.Name,
-		Body:       bytes.NewReader(body),
-	}
-	res, err := updateRequest.Do(context.Background(), c.esClient)
-	if err != nil || res == nil {
-		return errors.New("error thrown by elasticsearch: " + err.Error())
-	}
-	if res.StatusCode >= 300 {
-		return errors.New("elasticsearch responded with an error: " + string(res.String()))
-	}
-	// Drain response to reuse connection
-	_, er := io.Copy(io.Discard, res.Body)
-	res.Body.Close()
-	return er
+	return nil
+}
+
+func CaculatorHash(data types.OutputData) []byte {
+	hasher := md5.New()
+	hasher.Write(data.Data)
+	md5Hash := hasher.Sum(nil)
+	fmt.Printf("MD5 Hash: %x\n", md5Hash)
+	return md5Hash
 }

@@ -40,6 +40,7 @@ func main() {
 			SSLVerification: false,
 			Username:        "",
 			Password:        "",
+			Redis:           redisClient,
 		},
 		Kafka:            &kafka.Options{},
 		CertCacheSize:    254,
