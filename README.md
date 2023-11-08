@@ -16,13 +16,15 @@ Sẽ cần 1 con Mitmproxy mạnh để tải trọng 1 số tools như:
 
 [ ] nuclei
 
-[ ] Save log (processing 70%)
+[x] Save log
 
 ### Triển khai
-[ ] Sử dụng elasticsearch để save log request
+[x] Sử dụng elasticsearch để save log request
 
-[ ] Sử dụng redis để lọc request trùng nhau
+[x] Sử dụng redis để lọc request trùng nhau
 
-[ ] Lọc gói tin để lưu trong elastic lọc từ bộ TLS trong config
+[x] Lọc gói tin để lưu trong elastic lọc từ bộ TLS trong config
+
+[ ] Cho vào kafka
 
 [ ] Chuẩn bị 1 số tool fuzzing
