@@ -49,10 +49,13 @@ func (c *Client) Save(data types.OutputData) error {
 		Topic: c.topic,
 		Value: sarama.StringEncoder(data.DataString),
 	}
-	fmt.Println(c.producer)
+
 	_, _, err := c.producer.SendMessage(msg)
+
 	if err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
+	fmt.Println("Message sent")
 	return nil
 }
