@@ -29,7 +29,7 @@ func main() {
 	ping, err_redis := redisClient.Ping(ctx).Result()
 	pretty.Println(ping, err_redis)
 
-	// Filter := filterReq()
+	Filter := filterReq()
 
 	pr, _ := proxify.NewProxy(&proxify.Options{
 		Verbosity: types.VerbosityDefault,
@@ -41,6 +41,7 @@ func main() {
 			Username:        "",
 			Password:        "",
 			Redis:           redisClient,
+			Filter:          Filter,
 		},
 		Kafka:            &kafka.Options{},
 		CertCacheSize:    254,

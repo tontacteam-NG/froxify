@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -36,6 +37,8 @@ type Options struct {
 	IndexName string `yaml:"index-name"`
 	// RedisAddr is the address of redis instance
 	Redis *redis.Client `yaml:"redis"`
+	// TLS passes tls configuration to elasticsearch
+	Filter []string `yaml:"tls"`
 }
 
 // Client type for elasticsearch
@@ -44,6 +47,7 @@ type Client struct {
 	options  *Options
 	esClient *elasticsearch.Client
 	Redis    *redis.Client
+	Filter   []string
 }
 
 // New creates and returns a new client for elasticsearch
@@ -71,6 +75,7 @@ func New(option *Options) (*Client, error) {
 		index:    option.IndexName,
 		options:  option,
 		Redis:    option.Redis,
+		Filter:   option.Filter,
 	}
 	return client, nil
 
@@ -83,11 +88,20 @@ func (c *Client) Save(data types.OutputData) error {
 	if method == "CONNECT" {
 		return nil
 	}
+	// fmt.Println(data.Userdata.Host)
+	//process filter before saving
+	for _, line := range c.Filter {
+		matched, err := regexp.MatchString(line, data.Userdata.Host)
+		if err != nil {
+			fmt.Println("regexp.MatchString ERROR:", err)
+		}
+		if matched {
+			return nil
+		}
+	}
 
-	fmt.Println("redis: ", c.Redis)
 	hash := CaculatorHash(data)
 	exits, err := c.Redis.SIsMember(context.Background(), "hash", hash).Result()
-	fmt.Println("heehe: ", exits)
 	if err != nil {
 		fmt.Println("error: ", err)
 		return err
