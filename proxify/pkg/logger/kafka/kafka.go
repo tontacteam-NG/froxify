@@ -56,6 +56,5 @@ func (c *Client) Save(data types.OutputData) error {
 		fmt.Println(err.Error())
 		return err
 	}
-	fmt.Println("Message sent")
 	return nil
 }

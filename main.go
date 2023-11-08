@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/nxczje/froxy/handler"
 	"github.com/nxczje/froxy/proxify"
 	"github.com/nxczje/froxy/proxify/pkg/certs"
 	"github.com/nxczje/froxy/proxify/pkg/logger/elastic"
@@ -30,7 +31,8 @@ func main() {
 	pretty.Println(ping, err_redis)
 
 	Filter := filterReq()
-
+	addKafka := "127.0.0.1:9092"
+	TopicKafka := "nothing"
 	pr, _ := proxify.NewProxy(&proxify.Options{
 		Verbosity: types.VerbosityDefault,
 		Elastic: &elastic.Options{
@@ -44,13 +46,15 @@ func main() {
 			Filter:          Filter,
 		},
 		Kafka: &kafka.Options{
-			Addr:  "127.0.0.1:9092",
-			Topic: "nothing",
+			Addr:  addKafka,
+			Topic: TopicKafka,
 		},
 		CertCacheSize:    254,
 		ListenAddrHTTP:   "127.0.0.1:8888",
 		ListenAddrSocks5: "127.0.0.1:10080",
 	})
+	handler.HandlerConsumer(addKafka, TopicKafka)
+
 	pretty.Println("ListenAddrHTTP on port 8888")
 	pretty.Println("ListenAddrSocks5 on port 10080")
 
