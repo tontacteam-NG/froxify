@@ -1,6 +1,8 @@
 package kafka
 
 import (
+	"fmt"
+
 	"github.com/IBM/sarama"
 	"github.com/nxczje/froxy/proxify/pkg/types"
 )
@@ -33,6 +35,7 @@ func New(option *Options) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &Client{
 		producer: producer,
 		topic:    option.Topic,
@@ -46,7 +49,7 @@ func (c *Client) Save(data types.OutputData) error {
 		Topic: c.topic,
 		Value: sarama.StringEncoder(data.DataString),
 	}
-
+	fmt.Println(c.producer)
 	_, _, err := c.producer.SendMessage(msg)
 	if err != nil {
 		return err

@@ -43,7 +43,10 @@ func main() {
 			Redis:           redisClient,
 			Filter:          Filter,
 		},
-		Kafka:            &kafka.Options{},
+		Kafka: &kafka.Options{
+			Addr:  "127.0.0.1:9092",
+			Topic: "nothing",
+		},
 		CertCacheSize:    254,
 		ListenAddrHTTP:   "127.0.0.1:8888",
 		ListenAddrSocks5: "127.0.0.1:10080",
