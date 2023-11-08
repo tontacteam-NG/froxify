@@ -1,6 +1,8 @@
 # froxy
 Upstream Proxy Burp for fuzzing
 
+Thanks [proxify](https://github.com/projectdiscovery/proxify)
+
 ### Ý Tưởng
 ![](image/Screenshot%202023-11-03%20110833.png)
 
