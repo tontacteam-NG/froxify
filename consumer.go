@@ -35,6 +35,7 @@ func main() {
 		select {
 		case msg := <-partitionConsumer.Messages():
 			pretty.Println("Received messages", string(msg.Value))
+			pretty.Println("-----------------")
 		case err := <-partitionConsumer.Errors():
 			pretty.Println("Received errors", err)
 		}

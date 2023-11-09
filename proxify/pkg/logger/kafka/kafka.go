@@ -59,7 +59,6 @@ func New(option *Options) (*Client, error) {
 
 // Store passes the message to kafka
 func (c *Client) Save(data types.OutputData) error {
-
 	method := strings.Split(data.DataString, " ")[0]
 	if method == "CONNECT" {
 		return nil
@@ -75,8 +74,10 @@ func (c *Client) Save(data types.OutputData) error {
 			return nil
 		}
 	}
-
 	hash := CaculatorHash(data)
+	if hash == nil {
+		return nil
+	}
 	exits, err := c.Redis.SIsMember(context.Background(), "hash_consumer", hash).Result()
 	if err != nil {
 		fmt.Println("Redis.SIsMember ERROR:", err)
@@ -88,6 +89,12 @@ func (c *Client) Save(data types.OutputData) error {
 			c.Redis.SAdd(context.Background(), "hash_consumer", hash)
 		}
 	}
+
+	// fmt.Println("-----------------")
+	// if data.Userdata.HasResponse {
+	// 	fmt.Println(data.DataString)
+	// 	return nil
+	// }
 	msg := &sarama.ProducerMessage{
 		Topic: c.topic,
 		Value: sarama.StringEncoder(data.DataString),
@@ -103,9 +110,12 @@ func (c *Client) Save(data types.OutputData) error {
 }
 
 func CaculatorHash(data types.OutputData) []byte {
-	hasher := md5.New()
-	hasher.Write(data.Data)
-	md5Hash := hasher.Sum(nil)
-	fmt.Printf("MD5 Hash: %x\n", md5Hash)
-	return md5Hash
+	if data.Userdata.HasResponse {
+		return nil
+	} else {
+		hasher := md5.New()
+		hasher.Write(data.Data)
+		md5Hash := hasher.Sum(nil)
+		return md5Hash
+	}
 }

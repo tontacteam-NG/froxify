@@ -99,7 +99,6 @@ func (c *Client) Save(data types.OutputData) error {
 			return nil
 		}
 	}
-
 	hash := CaculatorHash(data)
 	exits, err := c.Redis.SIsMember(context.Background(), "hash", hash).Result()
 	if err != nil {
@@ -107,7 +106,7 @@ func (c *Client) Save(data types.OutputData) error {
 		return err
 	} else {
 		if exits {
-			fmt.Println("Hash exits")
+			return nil
 		} else {
 			var doc map[string]interface{}
 			if data.Userdata.HasResponse {
@@ -160,6 +159,5 @@ func CaculatorHash(data types.OutputData) []byte {
 	hasher := md5.New()
 	hasher.Write(data.Data)
 	md5Hash := hasher.Sum(nil)
-	fmt.Printf("MD5 Hash: %x\n", md5Hash)
 	return md5Hash
 }
