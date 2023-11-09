@@ -67,8 +67,10 @@ func NewLogger(options *OptionsLogger) *Logger {
 	}
 	if options.Kafka.Addr != "" {
 		kfoptions := kafka.Options{
-			Addr:  options.Kafka.Addr,
-			Topic: options.Kafka.Topic,
+			Addr:   options.Kafka.Addr,
+			Topic:  options.Kafka.Topic,
+			Redis:  options.Kafka.Redis,
+			Filter: options.Kafka.Filter,
 		}
 		store, err := kafka.New(&kfoptions)
 		if err != nil {
