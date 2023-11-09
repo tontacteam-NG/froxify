@@ -3,11 +3,13 @@ package main
 import (
 	"github.com/IBM/sarama"
 	"github.com/kr/pretty"
+	"github.com/nxczje/froxy/parser"
 )
 
 func main() {
-	Addr := []string{"127.0.0.1:9092"} //change this
-	Topic := "nothing"                 //change this
+	target := "asdasdasdasd.oob.nncg.uk" //change this
+	Addr := []string{"127.0.0.1:9092"}   //change this
+	Topic := "nothing"                   //change this
 	config := sarama.NewConfig()
 	config.Consumer.Offsets.Initial = sarama.OffsetOldest
 	consumer, err := sarama.NewConsumer(Addr, config)
@@ -30,12 +32,20 @@ func main() {
 			panic(err)
 		}
 	}()
-
+	pretty.Println("Waiting for messages....")
 	for {
 		select {
 		case msg := <-partitionConsumer.Messages():
-			pretty.Println("Received messages", string(msg.Value))
-			pretty.Println("-----------------")
+			req, err := parser.ParseRequest(string(msg.Value))
+			if err != nil {
+				pretty.Println(err)
+			}
+			if target == req.Host {
+				//work somthing
+				pretty.Println(req.Body)
+			}
+			// pretty.Println("Received messages", string(msg.Value))
+
 		case err := <-partitionConsumer.Errors():
 			pretty.Println("Received errors", err)
 		}
