@@ -1,14 +1,16 @@
-package handler
+package main
 
 import (
 	"github.com/IBM/sarama"
 	"github.com/kr/pretty"
 )
 
-func HandlerConsumer(addKafka string, TopicKafka string) {
+func main() {
+	Addr := []string{"127.0.0.1:9092"} //change this
+	Topic := "nothing"                 //change this
 	config := sarama.NewConfig()
 	config.Consumer.Offsets.Initial = sarama.OffsetOldest
-	consumer, err := sarama.NewConsumer([]string{addKafka}, config)
+	consumer, err := sarama.NewConsumer(Addr, config)
 	if err != nil {
 		pretty.Println(err)
 	}
@@ -18,7 +20,7 @@ func HandlerConsumer(addKafka string, TopicKafka string) {
 		}
 	}()
 
-	partitionConsumer, err := consumer.ConsumePartition(TopicKafka, 0, sarama.OffsetOldest)
+	partitionConsumer, err := consumer.ConsumePartition(Topic, 0, sarama.OffsetOldest)
 	if err != nil {
 		pretty.Println(err)
 	}

@@ -5,7 +5,6 @@ import (
 	"context"
 	"os"
 
-	"github.com/nxczje/froxy/handler"
 	"github.com/nxczje/froxy/proxify"
 	"github.com/nxczje/froxy/proxify/pkg/certs"
 	"github.com/nxczje/froxy/proxify/pkg/logger/elastic"
@@ -46,24 +45,25 @@ func main() {
 			Filter:          Filter,
 		},
 		Kafka: &kafka.Options{
-			Addr:  addKafka,
-			Topic: TopicKafka,
+			Addr:   addKafka,
+			Topic:  TopicKafka,
+			Redis:  redisClient,
+			Filter: Filter,
 		},
 		CertCacheSize:    254,
 		ListenAddrHTTP:   "127.0.0.1:8888",
 		ListenAddrSocks5: "127.0.0.1:10080",
 	})
-	handler.HandlerConsumer(addKafka, TopicKafka)
 
 	pretty.Println("ListenAddrHTTP on port 8888")
 	pretty.Println("ListenAddrSocks5 on port 10080")
-
 	// Create redis client
 
 	err := pr.Run()
 	if err != nil {
 		gologger.Fatal().Msgf("Could not run proxify: %s\n", err)
 	}
+
 }
 
 func filterReq() []string {
