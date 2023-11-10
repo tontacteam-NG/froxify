@@ -51,8 +51,8 @@ func main() {
 			Filter: Filter,
 		},
 		CertCacheSize:    254,
-		ListenAddrHTTP:   "127.0.0.1:8888",
-		ListenAddrSocks5: "127.0.0.1:10080",
+		ListenAddrHTTP:   "0.0.0.0:8888",
+		ListenAddrSocks5: "0.0.0.0:10080",
 	})
 
 	pretty.Println("ListenAddrHTTP on port 8888")
