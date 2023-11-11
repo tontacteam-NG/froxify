@@ -1,17 +1,25 @@
 package binary
 
 import (
+	"fmt"
+	"os"
 	"os/exec"
-
-	"github.com/kr/pretty"
 )
 
-const PATH = "./binary/"
-
 func X8(url string) {
-	cmd := exec.Command(PATH+"x8", url)
+	// Command to run
+	command := "/Users/nxczje/Documents/go/froxy/binary/x8Mac"
+	args := []string{"-u", url, "-w", "/Users/nxczje/Documents/go/froxy/lists/param.txt"}
+
+	// Create a new command
+	cmd := exec.Command(command, args...)
+
+	// Set the output to os.Stdout to see the result in the console
+	cmd.Stdout = os.Stdout
+
+	// Run the command
 	err := cmd.Run()
 	if err != nil {
-		pretty.Println(err)
+		fmt.Println("Error:", err)
 	}
 }

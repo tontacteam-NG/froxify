@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	target := "testtest.oob.nncg.uk"   //change this
+	target := "nothinnn.oob.nncg.uk"   //change this
 	Addr := []string{"127.0.0.1:9092"} //change this
 	Topic := "nothing"                 //change this
 	config := sarama.NewConfig()
@@ -44,7 +44,6 @@ func main() {
 			pretty.Println(req.Host)
 			if target == req.Host {
 				//work somthing
-				pretty.Println(req.URL.Scheme + "://" + req.URL.Host + req.URL.Path)
 				binary.X8(req.URL.Scheme + "://" + req.URL.Host + req.URL.Path)
 			}
 			// pretty.Println("Received messages", string(msg.Value))

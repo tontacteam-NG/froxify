@@ -114,11 +114,13 @@ func (c *Client) Save(data types.OutputData) error {
 					"response":  data.DataString,
 					"timestamp": time.Now().Format(time.RFC3339),
 				}
-			} else {
+			} else if data.DataString != "" {
 				doc = map[string]interface{}{
 					"request":   data.DataString,
 					"timestamp": time.Now().Format(time.RFC3339),
 				}
+			} else {
+				return nil
 			}
 
 			body, err := json.Marshal(&map[string]interface{}{
@@ -156,8 +158,29 @@ func (c *Client) Save(data types.OutputData) error {
 }
 
 func CaculatorHash(data types.OutputData) []byte {
-	hasher := md5.New()
-	hasher.Write(data.Data)
-	md5Hash := hasher.Sum(nil)
-	return md5Hash
+	if data.Userdata.HasResponse {
+		hasher := md5.New()
+		//Delete timestamp
+		temp := strings.Split(data.DataString, "\n")
+		data_temp := []string{}
+		for _, line := range temp {
+			if strings.Contains(line, "Date:") {
+				// pretty.Println(string(line))
+				continue
+			}
+			if strings.Contains(line, "Expires:") {
+				// pretty.Println(string(line))
+				continue
+			}
+			data_temp = append(data_temp, line)
+		}
+		hasher.Write([]byte(strings.Join(data_temp, "\n")))
+		md5Hash := hasher.Sum(nil)
+		return md5Hash
+	} else {
+		hasher := md5.New()
+		hasher.Write(data.Data)
+		md5Hash := hasher.Sum(nil)
+		return md5Hash
+	}
 }
