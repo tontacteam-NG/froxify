@@ -14,3 +14,11 @@ func ParseRequest(msg string) (*http.Request, error) {
 	}
 	return req, nil
 }
+
+func ParseFolder(data string) (int, []string, string) {
+	arr_temp := strings.Split(data, "/")
+	len := len(arr_temp)
+	arrDir := arr_temp[0 : len-1]
+	endArr := arr_temp[len-1]
+	return len, arrDir, endArr
+}
