@@ -3,77 +3,74 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
+	"strings"
 
 	"github.com/IBM/sarama"
 	"github.com/kr/pretty"
 	"github.com/nxczje/froxy/parser"
 )
 
+// Record chứa thông tin của một bản ghi
+type Record struct {
+	URL   string
+	Param string
+}
+
+// Node là một nút trong cây nhị phân
 type Node struct {
-	target string
-	data   string
-	left   *Node
-	right  *Node
+	URL      string
+	Records  []Record
+	Children map[string]*Node
 }
 
-type BinaryTree struct {
-	root *Node
+// Tree là cấu trúc cây nhị phân
+type Tree struct {
+	Root *Node
 }
 
-func (t *BinaryTree) insert(target string, data string) *BinaryTree {
-	if t.root == nil {
-		if _, err := os.Stat("output/" + target); os.IsNotExist(err) {
-			file, err := os.Create("output/" + target)
-			if err != nil {
-				log.Fatal(err)
+// Thêm đường dẫn vào cây nhị phân
+func (t *Tree) AddPath(url string, param string) {
+	components := strings.Split(url, "/")
+	current := t.Root
+
+	for _, component := range components {
+		if current.Children == nil {
+			current.Children = make(map[string]*Node)
+		}
+		fmt.Println(current.Children)
+		// Kiểm tra xem nút con có tồn tại chưa
+		child, exists := current.Children[component]
+		if !exists {
+			// Nếu không tồn tại, thêm một nút mới
+			child = &Node{URL: component}
+			current.Children[component] = child
+		}
+
+		// Di chuyển xuống nút con
+		current = child
+	}
+
+	// Lưu trữ thông tin tham số tại nút lá
+	current.Records = append(current.Records, Record{URL: url, Param: param})
+}
+
+// Hiển thị cây nhị phân
+func (t *Tree) Display(node *Node, level int) {
+	if node != nil {
+		for i := 0; i < level; i++ {
+			fmt.Print("  ")
+		}
+		fmt.Printf("%s\n", node.URL)
+		for _, record := range node.Records {
+			for i := 0; i < level+1; i++ {
+				fmt.Print("  ")
 			}
-			defer file.Close()
-			t.root = &Node{target: target, data: data, left: nil, right: nil}
-
-			defer file.Close()
-		} else {
-			t.root = &Node{target: target, data: data, left: nil, right: nil}
+			fmt.Printf("Param: %s\n", record.Param)
 		}
-		err := os.WriteFile("output/"+target, []byte(data), 0644)
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		t.root.insert(target, data)
-	}
-	return t
-}
-
-func (n *Node) insert(target string, data string) {
-	if n == nil {
-		return
-	} else if data < n.data {
-		if n.left == nil {
-			n.left = &Node{target: target, data: data, left: nil, right: nil}
-		} else {
-			n.left.insert(target, data)
-		}
-	} else if data > n.data {
-		if n.right == nil {
-			n.right = &Node{data: data, left: nil, right: nil}
-		} else {
-			n.right.insert(target, data)
+		for _, child := range node.Children {
+			t.Display(child, level+1)
 		}
 	}
-	// do nothing if data == n.data
-	if data == n.data {
-		return
-	}
-}
-
-func print(node *Node) {
-	if node == nil {
-		return
-	}
-	print(node.left)
-	fmt.Println(node.data)
-	print(node.right)
 }
 
 func main() {
@@ -93,18 +90,18 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	t := &BinaryTree{}
+	//  := &Tree{Root: &Node{URL: string(target)}}
 	pretty.Println("Waiting for messages....", target)
 	for {
 		select {
 		case msg := <-partitionConsumer.Messages():
+			// pretty.Println(string(msg.Value))
 			req, err := parser.ParseRequest(string(msg.Value))
 			if err != nil {
 				pretty.Println(err)
 			}
-			url := req.URL.Host
-			pretty.Println(req.URL)
-			t.insert(target, url)
+			pretty.Println(req)
+			// t.AddPath(req.URL.Host, req.URL.RawQuery)
 			// if target == req.Host {
 			//work somthing
 			// binary.X8(req.URL.Scheme + "://" + req.URL.Host + req.URL.Path)
@@ -113,6 +110,6 @@ func main() {
 		case err := <-partitionConsumer.Errors():
 			pretty.Println("Received errors", err)
 		}
-		print(t.root)
+		// t.Display(t.Root, 0)
 	}
 }

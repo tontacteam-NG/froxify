@@ -111,7 +111,24 @@ func (c *Client) Save(data types.OutputData) error {
 
 func CaculatorHash(data types.OutputData) []byte {
 	if data.Userdata.HasResponse {
-		return nil
+		hasher := md5.New()
+		//Delete timestamp
+		temp := strings.Split(data.DataString, "\n")
+		data_temp := []string{}
+		for _, line := range temp {
+			if strings.Contains(line, "Date:") {
+				// pretty.Println(string(line))
+				continue
+			}
+			if strings.Contains(line, "Expires:") {
+				// pretty.Println(string(line))
+				continue
+			}
+			data_temp = append(data_temp, line)
+		}
+		hasher.Write([]byte(strings.Join(data_temp, "\n")))
+		md5Hash := hasher.Sum(nil)
+		return md5Hash
 	} else {
 		hasher := md5.New()
 		hasher.Write(data.Data)
