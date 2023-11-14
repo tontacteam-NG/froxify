@@ -78,7 +78,7 @@ func (t *Tree) Display(node *Node, level int) {
 
 func main() {
 	target := "nothinnn.oob.nncg.uk"       //change this
-	Addr := []string{"10.14.140.245:9092"} //change this
+	Addr := []string{"10.14.140.135:9092"} //change this
 	Topic := "nothing"                     //change this
 	config := sarama.NewConfig()
 	config.Consumer.Offsets.Initial = sarama.OffsetOldest

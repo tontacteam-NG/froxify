@@ -42,6 +42,7 @@ func New(option *Options) (*Client, error) {
 	// Retry up to 10 times to produce the message
 	config.Producer.Retry.Max = 10
 	config.Producer.Return.Successes = true
+	config.Producer.MaxMessageBytes = 5242880
 
 	producer, err := sarama.NewSyncProducer([]string{option.Addr}, config)
 	if err != nil {
