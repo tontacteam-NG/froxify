@@ -21,7 +21,7 @@ type Node struct {
 // Tree là cấu trúc cây nhị phân
 type Tree struct {
 	Root *Node
-	mu   sync.Mutex // Sử dụng mutex để đồng bộ hóa truy cập cây
+	mu   *sync.Mutex // Sử dụng mutex để đồng bộ hóa truy cập cây
 }
 
 // Thêm đường dẫn vào cây nhị phân với goroutines
@@ -78,14 +78,12 @@ func (t *Tree) Display(node *Node, level int) {
 
 func main() {
 	target := "nothinnn.oob.nncg.uk"       //change this
-	Addr := []string{"10.14.140.135:9092"} //change this
+	Addr := []string{"10.14.140.245:9092"} //change this
 	Topic := "nothing"                     //change this
 	config := sarama.NewConfig()
 	config.Consumer.Offsets.Initial = sarama.OffsetOldest
-	var tree = Tree{
-		mu:   sync.Mutex{},
-		Root: &Node{URL: "root"},
-	}
+	mu := sync.Mutex{}
+	trees := make(map[string]Tree, 0)
 	consumer, err := sarama.NewConsumer(Addr, config)
 	if err != nil {
 		log.Fatalln(err)
@@ -103,16 +101,26 @@ func main() {
 		case msg := <-partitionConsumer.Messages():
 			req, err := parser.ParseRequest(string(msg.Value))
 			if err != nil {
-				pretty.Println(err)
+				// pretty.Println(err)
+				continue
+			}
+			mu.Lock()
+			tree, exsit := trees[req.Host]
+			if exsit {
+				tree.AddPath(req.RequestURI, req.URL.RawPath)
+			} else {
+				trees[req.Host] = Tree{mu: &sync.Mutex{}, Root: &Node{URL: req.Host}}
 			}
 			// pretty.Println(req)
-			tree.AddPath(req.RequestURI, req.URL.RawPath)
+
 			// t.AddPath(req.URL.Host, req.URL.RawQuery)
 			// if target == req.Host {
 			//work somthing
 			// binary.X8(req.URL.Scheme + "://" + req.URL.Host + req.URL.Path)
 			// }
+			mu.Unlock()
 			tree.Display(tree.Root, 0)
+			fmt.Println("----------------------------------------")
 
 		case err := <-partitionConsumer.Errors():
 			pretty.Println("Received errors", err)
