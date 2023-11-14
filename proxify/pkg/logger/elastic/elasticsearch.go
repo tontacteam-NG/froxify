@@ -77,7 +77,8 @@ func New(option *Options) (*Client, error) {
 		Redis:    option.Redis,
 		Filter:   option.Filter,
 	}
-	return client, nil
+	return client,
+		nil
 
 }
 
@@ -99,13 +100,23 @@ func (c *Client) Save(data types.OutputData) error {
 			return nil
 		}
 	}
-	hash := CaculatorHash(data)
-	exits, err := c.Redis.SIsMember(context.Background(), "hash", hash).Result()
+	exists, err := c.Redis.SIsMember(context.Background(), "hash_id", data.Name).Result()
 	if err != nil {
 		fmt.Println("error: ", err)
 		return err
 	} else {
-		if exits {
+		if exists {
+			return nil
+		}
+	}
+	hash := CaculatorHash(data)
+	exists, err = c.Redis.SIsMember(context.Background(), "hash", hash).Result()
+	if err != nil {
+		fmt.Println("error: ", err)
+		return err
+	} else {
+		if exists {
+			c.Redis.SAdd(context.Background(), "hash_id", data.Name)
 			return nil
 		} else {
 			var doc map[string]interface{}
@@ -158,29 +169,9 @@ func (c *Client) Save(data types.OutputData) error {
 }
 
 func CaculatorHash(data types.OutputData) []byte {
-	if data.Userdata.HasResponse {
-		hasher := md5.New()
-		//Delete timestamp
-		temp := strings.Split(data.DataString, "\n")
-		data_temp := []string{}
-		for _, line := range temp {
-			if strings.Contains(line, "Date:") {
-				// pretty.Println(string(line))
-				continue
-			}
-			if strings.Contains(line, "Expires:") {
-				// pretty.Println(string(line))
-				continue
-			}
-			data_temp = append(data_temp, line)
-		}
-		hasher.Write([]byte(strings.Join(data_temp, "\n")))
-		md5Hash := hasher.Sum(nil)
-		return md5Hash
-	} else {
-		hasher := md5.New()
-		hasher.Write(data.Data)
-		md5Hash := hasher.Sum(nil)
-		return md5Hash
-	}
+	hasher := md5.New()
+	hasher.Write(data.Data)
+	md5Hash := hasher.Sum(nil)
+	return md5Hash
+
 }

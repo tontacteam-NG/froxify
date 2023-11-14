@@ -70,9 +70,5 @@ services:
     depends_on:
       - zookeeper
 volumes:
-<<<<<<< HEAD
-  elasticsearch-data:
-=======
   elasticsearch-data:
   
->>>>>>> 5dd56a35366d4aa29f405187b2dd5359c6885543
