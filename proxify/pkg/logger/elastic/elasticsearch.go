@@ -85,8 +85,18 @@ func New(option *Options) (*Client, error) {
 // Store saves a passed log event in elasticsearch
 func (c *Client) Save(data types.OutputData) error {
 	//process redis before save
+	exists, err := c.Redis.SIsMember(context.Background(), "hash_id", data.Name).Result()
+	if err != nil {
+		fmt.Println("error: ", err)
+		return err
+	} else {
+		if exists {
+			return nil
+		}
+	}
 	method := strings.Split(data.DataString, " ")[0]
 	if method == "CONNECT" {
+		c.Redis.SAdd(context.Background(), "hash_id", data.Name)
 		return nil
 	}
 	// fmt.Println(data.Userdata.Host)
@@ -100,15 +110,7 @@ func (c *Client) Save(data types.OutputData) error {
 			return nil
 		}
 	}
-	exists, err := c.Redis.SIsMember(context.Background(), "hash_id", data.Name).Result()
-	if err != nil {
-		fmt.Println("error: ", err)
-		return err
-	} else {
-		if exists {
-			return nil
-		}
-	}
+
 	hash := CaculatorHash(data)
 	exists, err = c.Redis.SIsMember(context.Background(), "hash", hash).Result()
 	if err != nil {
@@ -159,6 +161,9 @@ func (c *Client) Save(data types.OutputData) error {
 			if er != nil {
 				return er
 			}
+			if data.Userdata.HasResponse {
+				return nil
+			}
 			err = c.Redis.SAdd(context.Background(), "hash", hash).Err()
 			if err != nil {
 				return err
@@ -169,6 +174,9 @@ func (c *Client) Save(data types.OutputData) error {
 }
 
 func CaculatorHash(data types.OutputData) []byte {
+	if data.Userdata.HasResponse {
+		return nil
+	}
 	hasher := md5.New()
 	hasher.Write(data.Data)
 	md5Hash := hasher.Sum(nil)
