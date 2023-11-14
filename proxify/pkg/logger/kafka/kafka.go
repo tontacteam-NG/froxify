@@ -60,80 +60,77 @@ func New(option *Options) (*Client, error) {
 
 // Store passes the message to kafka
 func (c *Client) Save(data types.OutputData) error {
-	method := strings.Split(data.DataString, " ")[0]
-	if method == "CONNECT" {
-		return nil
-	}
-	// fmt.Println(data.Userdata.Host)
-	//process filter before saving
-	for _, line := range c.Filter {
-		matched, err := regexp.MatchString(line, data.Userdata.Host)
+	if data.Userdata.HasResponse {
+		exists, err := c.Redis.SIsMember(context.Background(), "hash_consumer_id", data.Name).Result()
 		if err != nil {
-			fmt.Println("regexp.MatchString ERROR:", err)
-		}
-		if matched {
-			return nil
-		}
-	}
-	hash := CaculatorHash(data)
-	if hash == nil {
-		return nil
-	}
-	exits, err := c.Redis.SIsMember(context.Background(), "hash_consumer", hash).Result()
-	if err != nil {
-		fmt.Println("Redis.SIsMember ERROR:", err)
-		return err
-	} else {
-		if exits {
-			return nil
+			fmt.Println("error: ", err)
+			return err
 		} else {
-			c.Redis.SAdd(context.Background(), "hash_consumer", hash)
+			if exists {
+				// Get only method in future
+				msg := &sarama.ProducerMessage{
+					Topic: c.topic,
+					Value: sarama.StringEncoder(data.DataString),
+				}
+				_, _, err = c.producer.SendMessage(msg)
+
+				if err != nil {
+					fmt.Println(err.Error())
+					return err
+				}
+			}
+
 		}
-	}
+	} else {
+		method := strings.Split(data.DataString, " ")[0]
+		if method == "CONNECT" {
+			return nil
+		}
+		for _, line := range c.Filter {
+			matched, err := regexp.MatchString(line, data.Userdata.Host)
+			if err != nil {
+				fmt.Println("regexp.MatchString ERROR:", err)
+			}
+			if matched {
+				return nil
+			}
+		}
+		hash := CaculatorHash(data)
+		exists, err := c.Redis.SIsMember(context.Background(), "hash_consumer", hash).Result()
+		if err != nil {
+			fmt.Println("error: ", err)
+			return err
+		} else {
+			if exists {
+				return nil
+			} else {
+				msg := &sarama.ProducerMessage{
+					Topic: c.topic,
+					Value: sarama.StringEncoder(data.DataString),
+				}
+				_, _, err = c.producer.SendMessage(msg)
 
-	// fmt.Println("-----------------")
-	// if data.Userdata.HasResponse {
-	// 	fmt.Println(data.DataString)
-	// 	return nil
-	// }
-	msg := &sarama.ProducerMessage{
-		Topic: c.topic,
-		Value: sarama.StringEncoder(data.DataString),
-	}
-
-	_, _, err = c.producer.SendMessage(msg)
-
-	if err != nil {
-		fmt.Println(err.Error())
-		return err
+				if err != nil {
+					fmt.Println(err.Error())
+					return err
+				}
+				err = c.Redis.SAdd(context.Background(), "hash_consumer_id", data.Name).Err()
+				if err != nil {
+					return err
+				}
+				err = c.Redis.SAdd(context.Background(), "hash_consumer", hash).Err()
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 	return nil
 }
 
 func CaculatorHash(data types.OutputData) []byte {
-	if data.Userdata.HasResponse {
-		hasher := md5.New()
-		//Delete timestamp
-		temp := strings.Split(data.DataString, "\n")
-		data_temp := []string{}
-		for _, line := range temp {
-			if strings.Contains(line, "Date:") {
-				// pretty.Println(string(line))
-				continue
-			}
-			if strings.Contains(line, "Expires:") {
-				// pretty.Println(string(line))
-				continue
-			}
-			data_temp = append(data_temp, line)
-		}
-		hasher.Write([]byte(strings.Join(data_temp, "\n")))
-		md5Hash := hasher.Sum(nil)
-		return md5Hash
-	} else {
-		hasher := md5.New()
-		hasher.Write(data.Data)
-		md5Hash := hasher.Sum(nil)
-		return md5Hash
-	}
+	hasher := md5.New()
+	hasher.Write(data.Data)
+	md5Hash := hasher.Sum(nil)
+	return md5Hash
 }

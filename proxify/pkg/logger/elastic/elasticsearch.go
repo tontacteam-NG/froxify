@@ -147,7 +147,6 @@ func (c *Client) Save(data types.OutputData) error {
 			if exists {
 				return nil
 			} else {
-
 				doc := map[string]interface{}{
 					"request":   data.DataString,
 					"timestamp": time.Now().Format(time.RFC3339),
@@ -178,106 +177,21 @@ func (c *Client) Save(data types.OutputData) error {
 				if er != nil {
 					return er
 				}
-				c.Redis.SAdd(context.Background(), "hash_id", data.Name)
+				err = c.Redis.SAdd(context.Background(), "hash_id", data.Name).Err()
+				if err != nil {
+					return err
+				}
 				err = c.Redis.SAdd(context.Background(), "hash", hash).Err()
 				if err != nil {
 					return err
 				}
 			}
-			//process redis before save
-			// exists, err := c.Redis.SIsMember(context.Background(), "hash_id", data.Name).Result()
-			// if err != nil {
-			// 	fmt.Println("error: ", err)
-			// 	return err
-			// } else {
-			// 	if exists {
-			// 		return nil
-			// 	}
-			// }
-			// method := strings.Split(data.DataString, " ")[0]
-			// if method == "CONNECT" {
-			// 	c.Redis.SAdd(context.Background(), "hash_id", data.Name)
-			// 	return nil
-			// }
-			// fmt.Println(data.Userdata.Host)
-			//process filter before saving
-			// for _, line := range c.Filter {
-			// 	matched, err := regexp.MatchString(line, data.Userdata.Host)
-			// 	if err != nil {
-			// 		fmt.Println("regexp.MatchString ERROR:", err)
-
-			// 	}
-			// 	if matched {
-			// 		return nil
-			// 	}
-			// }
-
-			// hash := CaculatorHash(data)
-			// exists, err = c.Redis.SIsMember(context.Background(), "hash", hash).Result()
-			// if err != nil {
-			// 	fmt.Println("error: ", err)
-			// 	return err
-			// } else {
-			// 	if exists {
-			// 		c.Redis.SAdd(context.Background(), "hash_id", data.Name)
-			// 		return nil
-			// 	} else {
-			// 		var doc map[string]interface{}
-			// 		if data.Userdata.HasResponse {
-			// 			doc = map[string]interface{}{
-			// 				"response":  data.DataString,
-			// 				"timestamp": time.Now().Format(time.RFC3339),
-			// 			}
-			// 		} else if data.DataString != "" {
-			// 			doc = map[string]interface{}{
-			// 				"request":   data.DataString,
-			// 				"timestamp": time.Now().Format(time.RFC3339),
-			// 			}
-			// 		} else {
-			// 			return nil
-			// 		}
-
-			// 		body, err := json.Marshal(&map[string]interface{}{
-			// 			"doc":           doc,
-			// 			"doc_as_upsert": true,
-			// 		})
-			// 		if err != nil {
-			// 			return err
-			// 		}
-			// 		updateRequest := esapi.UpdateRequest{
-			// 			Index:      c.index,
-			// 			DocumentID: data.Name,
-			// 			Body:       bytes.NewReader(body),
-			// 		}
-			// 		res, err := updateRequest.Do(context.Background(), c.esClient)
-			// 		if err != nil || res == nil {
-			// 			return errors.New("error thrown by elasticsearch: " + err.Error())
-			// 		}
-			// 		if res.StatusCode >= 300 {
-			// 			return errors.New("elasticsearch responded with an error: " + string(res.String()))
-			// 		}
-			// 		// Drain response to reuse connection
-			// 		_, er := io.Copy(io.Discard, res.Body)
-			// 		res.Body.Close()
-			// 		if er != nil {
-			// 			return er
-			// 		}
-			// 		if data.Userdata.HasResponse {
-			// 			return nil
-			// 		}
-			// err = c.Redis.SAdd(context.Background(), "hash", hash).Err()
-			// if err != nil {
-			// 	return err
-			// }
 		}
 	}
 	return nil
 }
 
 func CaculatorHash(data types.OutputData) []byte {
-	if data.Userdata.HasResponse {
-		return nil
-	}
 	hasher := md5.New()
 	hasher.Write(data.Data)
 	md5Hash := hasher.Sum(nil)
