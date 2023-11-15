@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"slices"
 	"strings"
 	"sync"
 
@@ -45,16 +46,53 @@ func (t *Tree) AddPath(url, param string) {
 		child, exists := current.Children[component]
 		if !exists {
 			// Nếu không tồn tại, thêm một nút mới
-			child = &Node{URL: component}
+			child = &Node{URL: component, Param: make([]string, 0)}
 			current.Children[component] = child
 		}
 
 		// Di chuyển xuống nút con
 		current = child
 	}
-
+	if param == "" {
+		return
+	}
 	// Lưu trữ thông tin tham số tại nút lá
 	current.Param = append(current.Param, param)
+}
+
+// func SearchNode(node *Node, targetURL string) *Node {
+// 	if node == nil {
+// 		return nil
+// 	}
+
+// 	if node.URL == targetURL {
+// 		return node
+// 	}
+
+// 	for _, child := range node.Children {
+// 		if found := SearchNode(child, targetURL); found != nil {
+// 			if slices.Contains(s) {
+// 				return found
+// 			}
+// 		}
+// 	}
+
+//		return nil
+//	}
+func (n *Node) SearchNode1(targetURL string) *Node {
+
+	if n.URL == targetURL {
+		return n
+	}
+
+	for _, child := range n.Children {
+		if found := child.SearchNode1(targetURL); found != nil {
+			return found
+
+		}
+	}
+
+	return nil
 }
 
 // Hiển thị cây nhị phân
@@ -77,13 +115,13 @@ func (t *Tree) Display(node *Node, level int) {
 }
 
 func main() {
-	target := "nothinnn.oob.nncg.uk"   //change this
-	Addr := []string{"localhost:9092"} //change this
-	Topic := "nothing"                 //change this
+	target := "nothinnn.oob.nncg.uk"       //change this
+	Addr := []string{"10.14.140.245:9092"} //change this
+	Topic := "nothing"                     //change this
 	config := sarama.NewConfig()
 	config.Consumer.Offsets.Initial = sarama.OffsetOldest
-	// mu := sync.Mutex{}
-	// trees := make(map[string]Tree, 0)
+	mu := sync.Mutex{}
+	trees := make(map[string]Tree, 0)
 	consumer, err := sarama.NewConsumer(Addr, config)
 	if err != nil {
 		log.Fatalln(err)
@@ -104,15 +142,24 @@ func main() {
 				// pretty.Println(err)
 				continue
 			}
-			pretty.Println(req)
-			// mu.Lock()
-			// tree, exsit := trees[req.Host]
-			// if exsit {
-			// 	tree.AddPath(req.RequestURI, req.URL.RawPath)
-			// } else {
-			// 	trees[req.Host] = Tree{mu: &sync.Mutex{}, Root: &Node{URL: req.Host}}
-			// }
-
+			mu.Lock()
+			tree, exists := trees[req.Host]
+			if exists {
+				tree.mu.Lock()
+				n := tree.Root.SearchNode1(req.RequestURI)
+				if n != nil && slices.Contains(n.Param, req.URL.RawQuery) {
+					mu.Unlock()
+					tree.Display(tree.Root, 0)
+					fmt.Println("----------------------------------------")
+					continue
+				}
+				tree.mu.Unlock()
+				tree.AddPath(req.URL.Path, req.URL.RawQuery)
+			} else {
+				tree = Tree{mu: &sync.Mutex{}, Root: &Node{URL: req.Host}}
+				tree.AddPath(req.URL.Path, req.URL.RawQuery)
+				trees[req.Host] = tree
+			}
 			// pretty.Println(req)
 
 			// t.AddPath(req.URL.Host, req.URL.RawQuery)
@@ -120,9 +167,9 @@ func main() {
 			//work somthing
 			// binary.X8(req.URL.Scheme + "://" + req.URL.Host + req.URL.Path)
 			// }
-			// mu.Unlock()
-			// tree.Display(tree.Root, 0)
-			// fmt.Println("----------------------------------------")
+			mu.Unlock()
+			tree.Display(tree.Root, 0)
+			fmt.Println("----------------------------------------")
 
 		case err := <-partitionConsumer.Errors():
 			pretty.Println("Received errors", err)
