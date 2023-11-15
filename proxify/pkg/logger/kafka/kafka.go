@@ -79,7 +79,6 @@ func (c *Client) Save(data types.OutputData) error {
 					return err
 				}
 			}
-
 		}
 	} else {
 		method := strings.Split(data.DataString, " ")[0]
@@ -96,6 +95,9 @@ func (c *Client) Save(data types.OutputData) error {
 			}
 		}
 		hash := CaculatorHash(data)
+		if hash == nil {
+			return nil
+		}
 		exists, err := c.Redis.SIsMember(context.Background(), "hash_consumer", hash).Result()
 		if err != nil {
 			fmt.Println("error: ", err)
@@ -129,8 +131,13 @@ func (c *Client) Save(data types.OutputData) error {
 }
 
 func CaculatorHash(data types.OutputData) []byte {
-	hasher := md5.New()
-	hasher.Write(data.Data)
-	md5Hash := hasher.Sum(nil)
-	return md5Hash
+	check := strings.Contains(data.DataString, "Repeater: True")
+	if check {
+		return nil
+	} else {
+		hasher := md5.New()
+		hasher.Write(data.Data)
+		md5Hash := hasher.Sum(nil)
+		return md5Hash
+	}
 }
