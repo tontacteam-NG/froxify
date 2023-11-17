@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
 	"slices"
 	"strings"
 	"sync"
@@ -24,6 +26,8 @@ type Tree struct {
 	Root *Node
 	mu   *sync.Mutex // Sử dụng mutex để đồng bộ hóa truy cập cây
 }
+
+var fu_channel = make(chan string, 2)
 
 // Thêm đường dẫn vào cây nhị phân với goroutines
 func (t *Tree) AddPath(url, param string) {
@@ -81,18 +85,23 @@ func (t *Tree) AddPath(url, param string) {
 //	}
 func (n *Node) SearchNode1(targetURL string) *Node {
 
-	if n.URL == targetURL {
-		return n
-	}
+	components := strings.Split(targetURL, "/")
+	current := n
 
-	for _, child := range n.Children {
-		if found := child.SearchNode1(targetURL); found != nil {
-			return found
-
+	// pretty.Println(components)
+	for _, component := range components {
+		if component == "" {
+			continue
 		}
+		child, exists := current.Children[component]
+		if !exists {
+			// Nếu không tồn tại, thêm một nút mới
+			return nil
+		}
+		current = child
+		// Di chuyển xuống nút con
 	}
-
-	return nil
+	return current
 }
 
 // Hiển thị cây nhị phân
@@ -131,12 +140,13 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-
+	go runSqlmap()
 	//  := &Tree{Root: &Node{URL: string(target)}}
 	pretty.Println("Waiting for messages....", target)
 	for {
 		select {
 		case msg := <-partitionConsumer.Messages():
+
 			req, err := parser.ParseRequest(string(msg.Value))
 			if err != nil {
 				// pretty.Println(err)
@@ -145,19 +155,21 @@ func main() {
 			mu.Lock()
 			tree, exists := trees[req.Host]
 			if exists {
-				tree.mu.Lock()
-				n := tree.Root.SearchNode1(req.RequestURI)
+				n := tree.Root.SearchNode1(req.URL.Path)
 				if n != nil && slices.Contains(n.Param, req.URL.RawQuery) {
+					// tree.Display(tree.Root, 0)
 					mu.Unlock()
-					tree.Display(tree.Root, 0)
-					fmt.Println("----------------------------------------")
 					continue
+
 				}
-				tree.mu.Unlock()
+				mu.Unlock()
 				tree.AddPath(req.URL.Path, req.URL.RawQuery)
+				saveRequest(msg.Value)
 			} else {
 				tree = Tree{mu: &sync.Mutex{}, Root: &Node{URL: req.Host}}
+				mu.Unlock()
 				tree.AddPath(req.URL.Path, req.URL.RawQuery)
+				saveRequest(msg.Value)
 				trees[req.Host] = tree
 			}
 			// pretty.Println(req)
@@ -167,13 +179,51 @@ func main() {
 			//work somthing
 			// binary.X8(req.URL.Scheme + "://" + req.URL.Host + req.URL.Path)
 			// }
-			mu.Unlock()
-			tree.Display(tree.Root, 0)
-			fmt.Println("----------------------------------------")
+			// tree.Display(tree.Root, 0)
 
 		case err := <-partitionConsumer.Errors():
 			pretty.Println("Received errors", err)
 		}
 		// t.Display(t.Root, 0)
 	}
+}
+
+func saveRequest(req []byte) {
+	file, err := os.CreateTemp("/tmp/sqlmap", "sqlmap")
+	defer file.Close()
+	if err != nil {
+		log.Println(err.Error())
+	}
+	_, err = file.Write(req)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	go pushFuzz(file.Name())
+
+}
+
+func runSqlmap() {
+	var max = make(chan string, 5)
+	for i := range fu_channel {
+		max <- "123"
+		cmd := exec.Command("sqlmap", "--batch", "--level", "1", "--technique=BET", "--skip=\"cookie,referer,host\"", "--parse-errors", "-r", i)
+		go func(cmd exec.Cmd) {
+			fmt.Println(cmd.String())
+			err := cmd.Start()
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			err = cmd.Wait()
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			<-max
+		}(*cmd)
+
+	}
+}
+
+func pushFuzz(filename string) {
+	fu_channel <- filename
+	fmt.Println("pushed")
 }
