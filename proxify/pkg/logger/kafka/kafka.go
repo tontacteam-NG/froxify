@@ -98,12 +98,12 @@ func (c *Client) Save(data types.OutputData) error {
 		if hash == nil {
 			return nil
 		}
-		exists, err := c.Redis.SIsMember(context.Background(), "hash_consumer", hash).Result()
+		_, err := c.Redis.SIsMember(context.Background(), "hash_consumer", hash).Result()
 		if err != nil {
 			fmt.Println("error: ", err)
 			return err
 		} else {
-			if exists {
+			if false {
 				return nil
 			} else {
 				msg := &sarama.ProducerMessage{
