@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
+
+	"github.com/fatih/color"
 )
 
 var fu_channel = make(chan string, 2)
@@ -24,25 +26,18 @@ func SaveRequest(req []byte) error {
 	}
 	go func(filename string) {
 		fu_channel <- filename
-		fmt.Println("pushed")
+		color.Yellow("[PUSH] %s", filename)
 	}(file.Name())
 	return file.Close()
 }
 
-// func PushFuzz(filename string) {
-// 	fu_channel <- filename
-// 	fmt.Println("pushed")
-// }
-
 func Run() {
-	fmt.Println("Started Fuzzing")
 	var max = make(chan string, 5)
 	for i := range fu_channel {
 		max <- "Job"
 		cmd := exec.Command("osmedeus", "scan", "-f", "froxy", "-t", i)
 		go func(cmd exec.Cmd) {
-			fmt.Println(cmd.String())
-
+			color.Cyan("[DEBUG] %s", cmd.String())
 			err := cmd.Start()
 			if err != nil {
 				fmt.Println(err.Error())

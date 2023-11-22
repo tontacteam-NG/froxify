@@ -67,7 +67,7 @@ func main() {
 }
 
 func filterReq() []string {
-	f, err := os.OpenFile("../config/TLS-Pass-Through-List.txt", os.O_RDONLY, os.ModePerm)
+	f, err := os.OpenFile("../../config/TLS-Pass-Through-List.txt", os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		pretty.Println("Open filter.txt error:", err)
 	}
