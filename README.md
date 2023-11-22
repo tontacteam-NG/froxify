@@ -23,4 +23,4 @@ Not support HTTP/2. Recommend using server 64/32 core and >32Gb RAM:
 
 [x] Read data pipeline in kafka
 
-[ ] Tool fuzzing (Process)
+[x] Tool fuzzing (sqlmap) (x8 in process)
