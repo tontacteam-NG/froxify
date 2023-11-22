@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"os"
+	"os/exec"
 
 	"github.com/nxczje/froxy/proxify"
 	"github.com/nxczje/froxy/proxify/pkg/certs"
@@ -58,6 +59,14 @@ func main() {
 	pretty.Println("ListenAddrHTTP on port 8888")
 	pretty.Println("ListenAddrSocks5 on port 10080")
 	// Create redis client
+
+	// run Osmedeus server
+	cmd := exec.Command("osmedeus", "server")
+	pretty.Println("Server Osmedeus running on port 8000")
+	errr := cmd.Run()
+	if errr != nil {
+		pretty.Println("Osmedeus running server error")
+	}
 
 	err := pr.Run()
 	if err != nil {

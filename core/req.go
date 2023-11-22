@@ -48,6 +48,5 @@ func Run() {
 			}
 			<-max
 		}(*cmd)
-
 	}
 }
