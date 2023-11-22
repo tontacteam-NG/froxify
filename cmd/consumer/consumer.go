@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"net/http/httputil"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/IBM/sarama"
@@ -40,6 +42,17 @@ func main() {
 			if err != nil {
 				// pretty.Println(err)
 				continue
+			}
+			if !strings.Contains(req.Host, target) {
+				continue
+			}
+			if strings.HasPrefix(req.RequestURI, "http://") {
+				req.RequestURI = req.RequestURI[strings.LastIndex(req.RequestURI, "/"):]
+				msg.Value, err = httputil.DumpRequest(req, true)
+				if err != nil {
+					log.Println(err.Error())
+					continue
+				}
 			}
 
 			mu.Lock()
