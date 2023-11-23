@@ -47,7 +47,7 @@ func main() {
 				continue
 			}
 			if strings.HasPrefix(req.RequestURI, "http://") {
-				req.RequestURI = req.RequestURI[strings.LastIndex(req.RequestURI, "/"):]
+				req.RequestURI = "/" + strings.SplitAfterN(req.RequestURI, "/", 4)[3]
 				msg.Value, err = httputil.DumpRequest(req, true)
 				if err != nil {
 					log.Println(err.Error())
