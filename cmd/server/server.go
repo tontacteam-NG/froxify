@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"os"
-	"os/exec"
 
 	"github.com/nxczje/froxy/proxify"
 	"github.com/nxczje/froxy/proxify/pkg/certs"
@@ -61,12 +60,12 @@ func main() {
 	// Create redis client
 
 	// run Osmedeus server
-	cmd := exec.Command("osmedeus", "server")
-	pretty.Println("Server Osmedeus running on port 8000")
-	errr := cmd.Run()
-	if errr != nil {
-		pretty.Println("Osmedeus running server error")
-	}
+	// cmd := exec.Command("osmedeus", "server")
+	// pretty.Println("Server Osmedeus running on port 8000")
+	// errr := cmd.Run()
+	// if errr != nil {
+	// 	pretty.Println("Osmedeus running server error")
+	// }
 
 	err := pr.Run()
 	if err != nil {
@@ -76,7 +75,7 @@ func main() {
 }
 
 func filterReq() []string {
-	f, err := os.OpenFile("../../config/TLS-Pass-Through-List.txt", os.O_RDONLY, os.ModePerm)
+	f, err := os.OpenFile("../config/TLS-Pass-Through-List.txt", os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		pretty.Println("Open filter.txt error:", err)
 	}
