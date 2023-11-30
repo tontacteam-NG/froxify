@@ -6,6 +6,7 @@ import (
 	"log"
 	"os/exec"
 	"strings"
+	"syscall"
 
 	"github.com/fatih/color"
 	"github.com/hibiken/asynq"
@@ -56,18 +57,32 @@ func HandleRunStream(c context.Context, t *asynq.Task) error {
 		list_tmux <- std
 
 	}()
-	cmd := exec.Command("osmedeusdev", "scan", "-f", "froxy", "-t", string(t.Payload()), "-p=Std="+strings.ReplaceAll(std, "'", "")+"", "--debug")
+	cmd := exec.CommandContext(c, "osmedeusdev", "scan", "-f", "froxy", "-t", string(t.Payload()), "-p=Std="+strings.ReplaceAll(std, "'", "")+"", "--debug")
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
 	color.Cyan("[DEBUG] %s", cmd.String())
-	err := cmd.Run()
+	err := cmd.Start()
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
 	}
-	// err = cmd.Wait()
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// 	return err
-	// }
+	go func() {
+		<-c.Done()
+		// Kill by negative PID to kill the process group, which includes
+		// the top-level process we spawned as well as any subprocesses
+		// it spawned.
+		pgid, err := syscall.Getpgid(cmd.Process.Pid)
+		if err == nil {
+			_ = syscall.Kill(-pgid, syscall.SIGKILL)
+		}
+
+	}()
+	err = cmd.Wait()
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
 
 	return nil
 }
