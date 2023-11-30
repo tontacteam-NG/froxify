@@ -31,7 +31,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	go core.Run()
+	// go core.RunStreamTmux()
 	//  := &Tree{Root: &Node{URL: string(target)}}
 	color.Green("[INFO] %s", target)
 	for {
@@ -43,9 +43,9 @@ func main() {
 				// pretty.Println(err)
 				continue
 			}
-			if !strings.Contains(req.Host, target) {
-				continue
-			}
+			// if !strings.Contains(req.Host, target) {
+			// 	continue
+			// }
 			if strings.HasPrefix(req.RequestURI, "http://") {
 				req.RequestURI = "/" + strings.SplitAfterN(req.RequestURI, "/", 4)[3]
 				msg.Value, err = httputil.DumpRequest(req, true)

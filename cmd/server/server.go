@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"log"
 	"os"
 
 	"github.com/nxczje/froxy/proxify"
@@ -26,8 +27,11 @@ func main() {
 		Password: "",
 		DB:       0,
 	})
-	ping, err_redis := redisClient.Ping(ctx).Result()
-	pretty.Println(ping, err_redis)
+	_, err := redisClient.Ping(ctx).Result()
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
 
 	Filter := filterReq()
 	addKafka := "127.0.0.1:9092"
@@ -67,7 +71,7 @@ func main() {
 	// 	pretty.Println("Osmedeus running server error")
 	// }
 
-	err := pr.Run()
+	err = pr.Run()
 	if err != nil {
 		gologger.Fatal().Msgf("Could not run proxify: %s\n", err)
 	}
