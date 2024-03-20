@@ -1,8 +1,6 @@
 # FROXIFY
 Burp Upstream Proxy for fuzzing
 
-Thanks [proxify](https://github.com/projectdiscovery/proxify) and [osmedeus](https://github.com/j3ssie/osmedeus) help me for the development of this repo. Thanks [Catmandx](https://github.com/catmandx) for ideas and support me. 
-
 ### Ideas
 ![](image/Screenshot%202023-11-03%20110833.png)
 
